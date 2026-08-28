@@ -24,24 +24,62 @@ div[data-testid="stVerticalBlockBorderWrapper"]{background:rgba(255,255,255,.9);
 .studio-title{font-size:clamp(36px,4.4vw,62px);line-height:.98;letter-spacing:-.05em;margin:0;color:#111418}
 .studio-sub{max-width:760px;font-size:16px;line-height:1.55;color:#69717d;margin:12px 0 0}
 .note{padding:12px 14px;border:1px solid #dfe7e1;border-left:4px solid #56C257;background:#fbfffc;color:#374151;font-size:13px}
-/* Desktop: the live preview follows the viewport while the settings continue below. */
-div[data-testid="stVerticalBlockBorderWrapper"]:has(.sticky-preview-marker){
-  position:sticky!important;
-  top:14px!important;
-  align-self:flex-start!important;
-  z-index:4!important;
-  max-height:calc(100vh - 28px);
-  overflow:auto;
-  background:rgba(255,255,255,.96)!important;
-  backdrop-filter:blur(10px);
-  scrollbar-width:thin;
-}
+/* Desktop: keep the entire live-preview column pinned to the viewport.
+   Targeting the Streamlit column is more reliable than making the inner
+   bordered container sticky because Streamlit adds wrapper elements around it. */
 .sticky-preview-marker{display:block;width:0;height:0;overflow:hidden}
+
+@media(min-width:901px){
+  div[data-testid="stHorizontalBlock"]:has(.sticky-preview-marker){
+    align-items:flex-start!important;
+    overflow:visible!important;
+  }
+
+  div[data-testid="stColumn"]:has(.sticky-preview-marker){
+    position:sticky!important;
+    top:12px!important;
+    align-self:flex-start!important;
+    z-index:8!important;
+    height:calc(100vh - 24px)!important;
+    max-height:calc(100vh - 24px)!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    scrollbar-width:thin;
+    scrollbar-color:#c8cdd3 transparent;
+  }
+
+  /* Keep the actual preview large but make it fit within the visible viewport,
+     leaving room for its title and export controls below. */
+  div[data-testid="stColumn"]:has(.sticky-preview-marker) iframe{
+    height:calc(100vh - 245px)!important;
+    min-height:430px!important;
+    max-height:690px!important;
+  }
+
+  div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar{
+    width:5px;
+  }
+  div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar-track{
+    background:transparent;
+  }
+  div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar-thumb{
+    background:#c8cdd3;
+    border-radius:999px;
+  }
+}
+
 @media(max-width:900px){
-  div[data-testid="stVerticalBlockBorderWrapper"]:has(.sticky-preview-marker){
+  div[data-testid="stColumn"]:has(.sticky-preview-marker){
     position:static!important;
-    max-height:none;
-    overflow:visible;
+    height:auto!important;
+    max-height:none!important;
+    overflow:visible!important;
+  }
+
+  div[data-testid="stColumn"]:has(.sticky-preview-marker) iframe{
+    height:690px!important;
+    min-height:0!important;
+    max-height:none!important;
   }
 }
 </style>
@@ -228,11 +266,9 @@ def generate_html(df, cfg):
         controls.append(f'<div class="pager"><label>Rows <select id="size">{opts}</select></label><button id="prev" type="button">←</button><span id="status"></span><button id="next" type="button">→</button></div>')
     controls_html = f'<div class="controls">{"".join(controls)}</div>' if controls else ""
 
-    # V1.7: logo shares only the title row so the subtitle can use the full header width.
-    # Brand-specific logo sizing. BOLAVIP's horizontal wordmark reads larger
-    # than the other marks at the same CSS box size, so give it a quieter footprint.
+    # Brand-specific logo sizing based on perceived visual weight.
     if cfg["brand"] == "BOLAVIP":
-        # BOLAVIP's wide wordmark has a lot of visual mass, so keep it deliberately compact.
+        # Wide, heavy wordmark: deliberately compact.
         header_logo_max_w = 104
         header_logo_max_h = 27
         footer_logo_max_w = 94
@@ -240,25 +276,39 @@ def generate_html(df, cfg):
         mobile_header_logo_max_w = 88
         mobile_header_logo_max_h = 22
     elif cfg["brand"] == "Action Network":
-        # Action Network's supplied mark reads visually smaller inside the same box,
-        # so give only this brand a larger footprint while keeping the same header/footer row.
-        header_logo_max_w = 198
-        header_logo_max_h = 48
-        footer_logo_max_w = 164
+        # Action's visible mark is relatively small inside the source image canvas,
+        # so it needs a larger CSS box to read at the same visual size.
+        header_logo_max_w = 235
+        header_logo_max_h = 52
+        footer_logo_max_w = 175
         footer_logo_max_h = 38
         mobile_header_logo_max_w = 142
-        mobile_header_logo_max_h = 34
+        mobile_header_logo_max_h = 33
     else:
-        # Keep the sizing of the other brand marks unchanged.
-        header_logo_max_w = 150
-        header_logo_max_h = 36
-        footer_logo_max_w = 122
-        footer_logo_max_h = 29
-        mobile_header_logo_max_w = 108
+        header_logo_max_w = 160
+        header_logo_max_h = 38
+        footer_logo_max_w = 128
+        footer_logo_max_h = 30
+        mobile_header_logo_max_w = 112
         mobile_header_logo_max_h = 27
 
+    # max-width alone does not upscale a small source image. The Action Network
+    # asset has a relatively small intrinsic canvas, so give it an explicit CSS
+    # width. This makes the visible mark larger without adding another row or
+    # increasing the header/footer height.
+    if cfg["brand"] == "Action Network":
+        header_logo_width_css = f"width:{header_logo_max_w}px;max-width:none;"
+        footer_logo_width_css = f"width:{footer_logo_max_w}px;max-width:none;"
+        mobile_header_logo_width_css = f"width:{mobile_header_logo_max_w}px;max-width:none;"
+        mobile_footer_logo_width_css = "width:112px;max-width:none;"
+    else:
+        header_logo_width_css = f"width:auto;max-width:{header_logo_max_w}px;"
+        footer_logo_width_css = f"width:auto;max-width:{footer_logo_max_w}px;"
+        mobile_header_logo_width_css = f"width:auto;max-width:{mobile_header_logo_max_w}px;"
+        mobile_footer_logo_width_css = f"width:auto;max-width:min({footer_logo_max_w}px,26vw);"
+
     mobile_css = """
-    @media(max-width:720px){table{min-width:0}thead{display:none}.top-scroll{display:none!important}.scroll{border:0;overflow:visible}tbody{display:grid;gap:10px}tbody tr.data-row{display:block!important;border:1px solid var(--line);background:#fff}tbody td{display:grid;grid-template-columns:minmax(100px,38%) minmax(0,1fr);gap:12px;width:100%;border-right:0;padding:10px 12px;text-align:right!important}tbody td:before{content:attr(data-label);color:#69717c;text-align:left;font-size:10px;font-weight:850;letter-spacing:.07em;text-transform:uppercase}}
+    @media(max-width:720px){table{min-width:0}thead{display:none}.top-scroll,.edge-hint{display:none!important}.scroll-shell{overflow:visible}.scroll{border:0;overflow:visible}tbody{display:grid;gap:10px}tbody tr.data-row{display:block!important;border:1px solid var(--line);background:#fff}tbody td{display:grid;grid-template-columns:minmax(100px,38%) minmax(0,1fr);gap:12px;width:100%;border-right:0;padding:10px 12px;text-align:right!important}tbody td:before{content:attr(data-label);color:#69717c;text-align:left;font-size:10px;font-weight:850;letter-spacing:.07em;text-transform:uppercase}}
     """ if cfg["mobile_cards"] else ""
 
     return f'''<!DOCTYPE html>
@@ -266,14 +316,14 @@ def generate_html(df, cfg):
 <style>
 :root{{--accent:{brand["accent"]};--dark:{brand["dark"]};--tint:{brand["tint"]};--stripe:{brand["stripe"]};--line:#e1e5e9;--ink:#171a1e;--muted:#68707c}}
 *{{box-sizing:border-box}}body{{margin:0;padding:24px;background:#f5f6f7;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}}.wrap{{width:min(1180px,100%);margin:auto;background:#fff;border:1px solid var(--line);overflow:hidden}}
-header{{padding:26px 28px 24px;background:var(--tint);border-bottom:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}}.header-top{{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:20px;min-width:0}}.header-title{{min-width:0}}header .header-logo{{display:block;max-width:{header_logo_max_w}px;max-height:{header_logo_max_h}px;width:auto;height:auto;object-fit:contain;justify-self:end}}.kicker{{margin:0 0 8px;color:var(--dark);font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}}h1{{margin:0;max-width:900px;font-size:clamp(25px,4vw,42px);line-height:1.02;letter-spacing:-.045em}}.sub{{width:100%;max-width:none;margin:10px 0 0;color:#59616d;font-size:clamp(14px,1.7vw,17px);line-height:1.5}}
+header{{position:relative;display:block;padding:26px 28px 24px;background:var(--tint);border-bottom:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}}header.has-logo{{right:28px;top:50%;transform:translateY(-50%);{header_logo_width_css}max-height:{header_logo_max_h}px;height:auto;object-fit:contain}}.kicker{{margin:0 0 8px;color:var(--dark);font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}}h1{{margin:0;max-width:900px;font-size:clamp(25px,4vw,42px);line-height:1.02;letter-spacing:-.045em}}.sub{{max-width:820px;margin:10px 0 0;color:#59616d;font-size:clamp(14px,1.7vw,17px);line-height:1.5}}
 .body{{padding:18px 20px 20px}}.controls{{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}}.search{{flex:1 1 240px;max-width:340px}}input,select,.pager button{{min-height:40px;border:1px solid #d8dde3;border-radius:9px;background:#fff;color:#24282e;font:650 13px/1 system-ui,sans-serif}}input{{width:100%;padding:0 12px}}input:focus,select:focus,.pager button:focus-visible{{outline:3px solid color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent)}}.count{{color:var(--muted);font-size:12.5px;font-weight:700}}.pager{{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;font-weight:700}}.pager label{{display:flex;align-items:center;gap:6px}}.pager select{{padding:0 25px 0 9px}}.pager button{{width:40px;padding:0;cursor:pointer}}.pager button:disabled{{opacity:.35;cursor:default}}
-.top-scroll{{width:100%;height:7px;overflow-x:auto;overflow-y:hidden;margin:0 0 8px;border:0;background:transparent;display:none;scrollbar-width:thin;scrollbar-color:var(--accent) color-mix(in srgb,var(--accent) 10%,#eef1f4)}}.top-scroll-inner{{height:1px}}.scroll{{width:100%;overflow-x:auto;border:1px solid var(--line);scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:var(--accent) color-mix(in srgb,var(--accent) 10%,#eef1f4)}}.top-scroll::-webkit-scrollbar,.scroll::-webkit-scrollbar{{height:5px}}.top-scroll::-webkit-scrollbar-track,.scroll::-webkit-scrollbar-track{{background:color-mix(in srgb,var(--accent) 8%,#eef1f4);border-radius:999px}}.top-scroll::-webkit-scrollbar-thumb,.scroll::-webkit-scrollbar-thumb{{background:var(--accent);border-radius:999px}}.top-scroll::-webkit-scrollbar-thumb:hover,.scroll::-webkit-scrollbar-thumb:hover{{background:var(--dark)}}table{{width:100%;min-width:{table_min_width}px;border-collapse:separate;border-spacing:0}}th{{{'position:sticky;top:0;z-index:3;' if cfg['sticky'] else ''}padding:13px 14px;background:#12161b;color:#fff;border-right:1px solid rgba(255,255,255,.08);font-size:12px;line-height:1.25;font-weight:800;text-align:left}}th:last-child{{border-right:0}}th.sortable{{cursor:pointer;user-select:none}}th.sortable i{{display:inline-block;width:7px;height:7px;margin-left:7px;border-right:1.5px solid #9da4ae;border-bottom:1.5px solid #9da4ae;transform:rotate(45deg) translateY(-2px)}}th.a-center{{text-align:center}}th.a-right{{text-align:right}}th.a-left{{text-align:left}}th.asc i{{transform:rotate(225deg)}}td{{padding:13px 14px;border-right:1px solid #edf0f2;border-bottom:1px solid #e9ecef;color:#30353c;font-size:13.5px;line-height:1.4;font-weight:560;background:#fff}}td:last-child{{border-right:0}}{'tbody tr:nth-child(even):not(.top) td{background:var(--stripe)}' if cfg['zebra'] else ''}.top td:first-child{{box-shadow:inset 4px 0 0 var(--accent)}}@media(hover:hover) and (pointer:fine){{tbody tr:hover td{{background:color-mix(in srgb,var(--accent) 8%,#fff)}}}}.a-left{{text-align:left}}.a-center{{text-align:center}}.a-right{{text-align:right;font-variant-numeric:tabular-nums}}#empty{{display:none;padding:34px 20px;text-align:center;color:var(--muted)}}
-footer{{padding:16px 24px;background:var(--tint);border-top:1px solid color-mix(in srgb,var(--accent) 18%,transparent)}}.footer-main{{display:flex;justify-content:space-between;gap:18px;align-items:center;min-width:0}}.footer-meta{{display:grid;gap:6px;min-width:0;flex:1 1 auto}}.footer-meta div{{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;color:#606873;font-size:11.5px;line-height:1.4}}.footer-meta strong{{color:#31363d;font-size:10px;letter-spacing:.08em;text-transform:uppercase}}.footer-logo{{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;line-height:0}}.footer-logo img{{max-width:{footer_logo_max_w}px;max-height:{footer_logo_max_h}px;width:auto;height:auto;object-fit:contain}}.footnote{{margin:14px 0 0;padding-top:12px;border-top:1px solid rgba(0,0,0,.07);color:#747c86;font-size:10.5px;line-height:1.5}}.sr{{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}}
-@media(max-width:720px){{body{{padding:8px}}header{{padding:18px 16px 16px}}.header-top{{gap:12px;align-items:center}}header .header-logo{{max-width:{mobile_header_logo_max_w}px;max-height:{mobile_header_logo_max_h}px}}.body{{padding:10px}}.controls{{gap:8px;margin-bottom:10px}}.search{{max-width:none;flex-basis:100%}}.count{{order:2}}.pager{{order:3;margin-left:auto;width:auto;justify-content:flex-end}}.scroll{{-webkit-overflow-scrolling:touch}}th,td{{white-space:nowrap}}footer{{padding:14px 16px}}.footer-main{{flex-direction:row;align-items:center;gap:12px}}.footer-meta div{{grid-template-columns:68px minmax(0,1fr);gap:8px}}.footer-logo img{{max-width:min({footer_logo_max_w}px,26vw);max-height:{footer_logo_max_h}px}}}}
+.top-scroll{{width:100%;height:7px;overflow-x:auto;overflow-y:hidden;margin:0 0 8px;border:0;background:transparent;display:none;scrollbar-width:thin;scrollbar-color:var(--accent) color-mix(in srgb,var(--accent) 10%,#eef1f4)}}.top-scroll-inner{{height:1px}}.scroll-shell{{position:relative;width:100%;min-width:0}}.scroll{{width:100%;overflow-x:auto;border:1px solid var(--line);scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:var(--accent) color-mix(in srgb,var(--accent) 10%,#eef1f4)}}.top-scroll::-webkit-scrollbar,.scroll::-webkit-scrollbar{{height:5px}}.top-scroll::-webkit-scrollbar-track,.scroll::-webkit-scrollbar-track{{background:color-mix(in srgb,var(--accent) 8%,#eef1f4);border-radius:999px}}.top-scroll::-webkit-scrollbar-thumb,.scroll::-webkit-scrollbar-thumb{{background:var(--accent);border-radius:999px}}.top-scroll::-webkit-scrollbar-thumb:hover,.scroll::-webkit-scrollbar-thumb:hover{{background:var(--dark)}}.edge-hint{{position:absolute;top:1px;bottom:6px;z-index:8;display:none;pointer-events:none;align-items:center;justify-content:center;color:var(--accent-dark);font-size:16px;font-weight:900;transition:opacity .16s ease,width .12s ease;overflow:hidden}}.edge-hint span{{display:flex;align-items:center;justify-content:center;width:24px;height:32px;opacity:.78;text-shadow:0 1px 0 rgba(255,255,255,.75)}}.edge-hint.right{{right:1px;background:linear-gradient(to right,rgba(255,255,255,0) 0%,rgba(255,255,255,.82) 24%,#fff 52%,#fff 100%)}}.edge-hint.left{{left:1px;width:30px;background:linear-gradient(to left,rgba(255,255,255,0) 0%,rgba(255,255,255,.86) 42%,#fff 100%)}}@media(hover:hover) and (pointer:fine){{.scroll-shell:hover .edge-hint span{{opacity:1}}}}table{{width:100%;min-width:{table_min_width}px;border-collapse:separate;border-spacing:0}}th{{{'position:sticky;top:0;z-index:3;' if cfg['sticky'] else ''}padding:13px 14px;background:#12161b;color:#fff;border-right:1px solid rgba(255,255,255,.08);font-size:12px;line-height:1.25;font-weight:800;text-align:left}}th:last-child{{border-right:0}}th.sortable{{cursor:pointer;user-select:none}}th.sortable i{{display:inline-block;width:7px;height:7px;margin-left:7px;border-right:1.5px solid #9da4ae;border-bottom:1.5px solid #9da4ae;transform:rotate(45deg) translateY(-2px)}}th.a-center{{text-align:center}}th.a-right{{text-align:right}}th.a-left{{text-align:left}}th.asc i{{transform:rotate(225deg)}}td{{padding:13px 14px;border-right:1px solid #edf0f2;border-bottom:1px solid #e9ecef;color:#30353c;font-size:13.5px;line-height:1.4;font-weight:560;background:#fff}}td:last-child{{border-right:0}}{'tbody tr:nth-child(even):not(.top) td{background:var(--stripe)}' if cfg['zebra'] else ''}.top td:first-child{{box-shadow:inset 4px 0 0 var(--accent)}}@media(hover:hover) and (pointer:fine){{tbody tr:hover td{{background:color-mix(in srgb,var(--accent) 8%,#fff)}}}}.a-left{{text-align:left}}.a-center{{text-align:center}}.a-right{{text-align:right;font-variant-numeric:tabular-nums}}#empty{{display:none;padding:34px 20px;text-align:center;color:var(--muted)}}
+footer{{padding:16px 24px;background:var(--tint);border-top:1px solid color-mix(in srgb,var(--accent) 18%,transparent)}}.footer-main{{display:flex;justify-content:space-between;gap:18px;align-items:center;min-width:0}}.footer-meta{{display:grid;gap:6px;min-width:0;flex:1 1 auto}}.footer-meta div{{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;color:#606873;font-size:11.5px;line-height:1.4}}.footer-meta strong{{color:#31363d;font-size:10px;letter-spacing:.08em;text-transform:uppercase}}.footer-logo{{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;line-height:0}}.footer-logo img{{{footer_logo_width_css}max-height:{footer_logo_max_h}px;height:auto;object-fit:contain}}.footnote{{margin:14px 0 0;padding-top:12px;border-top:1px solid rgba(0,0,0,.07);color:#747c86;font-size:10.5px;line-height:1.5}}.sr{{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}}
+@media(max-width:720px){{body{{padding:8px}}header{{padding:18px 16px 16px}}header.has-logo{{{mobile_header_logo_width_css}max-height:{mobile_header_logo_max_h}px}}.body{{padding:10px}}.controls{{gap:8px;margin-bottom:10px}}.search{{max-width:none;flex-basis:100%}}.count{{order:2}}.pager{{order:3;margin-left:auto;width:auto;justify-content:flex-end}}.scroll{{-webkit-overflow-scrolling:touch}}th,td{{white-space:nowrap}}footer{{padding:14px 16px}}.footer-main{{flex-direction:row;align-items:center;gap:12px}}.footer-meta div{{grid-template-columns:68px minmax(0,1fr);gap:8px}}.footer-logo img{{{mobile_footer_logo_width_css}max-height:{footer_logo_max_h}px}}}}
 {mobile_css}
-</style></head><body><section class="wrap" id="root"><header><div class="header-top"><div class="header-title"><p class="kicker">{html.escape(cfg["kicker"])}</p><h1>{html.escape(cfg["title"] or "Interactive table")}</h1></div>{header_logo}</div>{f'<p class="sub">{html.escape(cfg["subtitle"])}</p>' if cfg["subtitle"].strip() else ''}</header><div class="body">{controls_html}<div class="top-scroll" id="topScroll" aria-hidden="true"><div class="top-scroll-inner" id="topScrollInner"></div></div><div class="scroll" id="tableScroll"><table id="table"><thead><tr>{''.join(th)}</tr></thead><tbody>{''.join(rows)}</tbody></table></div><div id="empty">No rows match your search.</div></div>{footer}</section>
-<script>(function(){{const t=document.getElementById('table'),tb=t.tBodies[0],tableScroll=document.getElementById('tableScroll'),topScroll=document.getElementById('topScroll'),topScrollInner=document.getElementById('topScrollInner'),q=document.getElementById('q'),size=document.getElementById('size'),prev=document.getElementById('prev'),next=document.getElementById('next'),status=document.getElementById('status'),count=document.getElementById('count'),empty=document.getElementById('empty');let rows=[...tb.querySelectorAll('tr.data-row')],page=1,ps=size?(parseInt(size.value)||0):0,sc=null,dir=1;function filtered(){{let x=q?q.value.trim().toLowerCase():'';return x?rows.filter(r=>(r.dataset.search||'').includes(x)):rows.slice()}}function sv(c,type){{let x=(c?.dataset.sort||c?.textContent||'').trim();if(type==='number'){{let n=parseFloat(x.replace(/,/g,''));return Number.isFinite(n)?n:-Infinity}}return x.toLowerCase()}}function syncScrollbars(){{if(!tableScroll||!topScroll||!topScrollInner)return;const overflow=tableScroll.scrollWidth>tableScroll.clientWidth+2;topScroll.style.display=overflow?'block':'none';topScrollInner.style.width=tableScroll.scrollWidth+'px';if(!overflow){{topScroll.scrollLeft=0;tableScroll.scrollLeft=0}}}}function render(){{let a=filtered();if(sc!==null){{let th=t.tHead.rows[0].cells[sc],type=th.dataset.type||'text';a.sort((r1,r2)=>{{let x=sv(r1.cells[sc],type),y=sv(r2.cells[sc],type);return (typeof x==='number'&&typeof y==='number'?(x-y):String(x).localeCompare(String(y),undefined,{{numeric:true}}))*dir}})}}rows.forEach(r=>r.style.display='none');let total=a.length,pages=ps?Math.max(1,Math.ceil(total/ps)):1;page=Math.min(Math.max(1,page),pages);let show=ps?a.slice((page-1)*ps,page*ps):a;show.forEach(r=>{{r.style.display='';tb.appendChild(r)}});if(count)count.textContent=total===rows.length?`${{total.toLocaleString()}} rows`:`${{total.toLocaleString()}} of ${{rows.length.toLocaleString()}} rows`;if(status)status.textContent=`${{page}} / ${{pages}}`;if(prev)prev.disabled=page<=1;if(next)next.disabled=page>=pages;if(empty)empty.style.display=total?'none':'block';requestAnimationFrame(syncScrollbars)}}if(q)q.addEventListener('input',()=>{{page=1;render()}});if(size)size.addEventListener('change',()=>{{ps=parseInt(size.value)||0;page=1;render()}});if(prev)prev.addEventListener('click',()=>{{page--;render()}});if(next)next.addEventListener('click',()=>{{page++;render()}});{'t.querySelectorAll("th.sortable").forEach((th,i)=>{th.tabIndex=0;function go(){if(sc===i)dir*=-1;else{sc=i;dir=1}t.querySelectorAll("th").forEach(x=>x.classList.remove("asc"));if(dir===1)th.classList.add("asc");page=1;render()}th.addEventListener("click",go);th.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}})});' if cfg['sortable'] else ''}if(tableScroll&&topScroll){{let lock=false;tableScroll.addEventListener('scroll',()=>{{if(lock)return;lock=true;topScroll.scrollLeft=tableScroll.scrollLeft;requestAnimationFrame(()=>lock=false)}});topScroll.addEventListener('scroll',()=>{{if(lock)return;lock=true;tableScroll.scrollLeft=topScroll.scrollLeft;requestAnimationFrame(()=>lock=false)}});}}window.addEventListener('resize',syncScrollbars);if('ResizeObserver'in window&&tableScroll){{new ResizeObserver(syncScrollbars).observe(tableScroll)}}render();requestAnimationFrame(syncScrollbars);setTimeout(syncScrollbars,120)}})();</script></body></html>'''
+</style></head><body><section class="wrap" id="root"><header class="{"has-logo" if header_logo else ""}"><div><p class="kicker">{html.escape(cfg["kicker"])}</p><h1>{html.escape(cfg["title"] or "Interactive table")}</h1>{f'<p class="sub">{html.escape(cfg["subtitle"])}</p>' if cfg["subtitle"].strip() else ''}</div>{header_logo}</header><div class="body">{controls_html}<div class="top-scroll" id="topScroll" aria-hidden="true"><div class="top-scroll-inner" id="topScrollInner"></div></div><div class="scroll-shell" id="scrollShell"><div class="scroll" id="tableScroll"><table id="table"><thead><tr>{''.join(th)}</tr></thead><tbody>{''.join(rows)}</tbody></table></div><div class="edge-hint left" id="edgeLeft" aria-hidden="true"><span>←</span></div><div class="edge-hint right" id="edgeRight" aria-hidden="true"><span>→</span></div></div><div id="empty">No rows match your search.</div></div>{footer}</section>
+<script>(function(){{const t=document.getElementById('table'),tb=t.tBodies[0],tableScroll=document.getElementById('tableScroll'),topScroll=document.getElementById('topScroll'),topScrollInner=document.getElementById('topScrollInner'),edgeLeft=document.getElementById('edgeLeft'),edgeRight=document.getElementById('edgeRight'),q=document.getElementById('q'),size=document.getElementById('size'),prev=document.getElementById('prev'),next=document.getElementById('next'),status=document.getElementById('status'),count=document.getElementById('count'),empty=document.getElementById('empty');let rows=[...tb.querySelectorAll('tr.data-row')],page=1,ps=size?(parseInt(size.value)||0):0,sc=null,dir=1;function filtered(){{let x=q?q.value.trim().toLowerCase():'';return x?rows.filter(r=>(r.dataset.search||'').includes(x)):rows.slice()}}function sv(c,type){{let x=(c?.dataset.sort||c?.textContent||'').trim();if(type==='number'){{let n=parseFloat(x.replace(/,/g,''));return Number.isFinite(n)?n:-Infinity}}return x.toLowerCase()}}function syncOverflowHints(){{if(!tableScroll)return;const max=Math.max(0,tableScroll.scrollWidth-tableScroll.clientWidth),x=tableScroll.scrollLeft,overflow=max>2;if(edgeLeft){{edgeLeft.style.display=overflow&&x>2?'flex':'none'}}if(edgeRight){{if(!overflow||x>=max-2){{edgeRight.style.display='none';edgeRight.style.width='0px'}}else{{let w=32;const vr=tableScroll.getBoundingClientRect(),heads=[...t.tHead.rows[0].cells];for(const cell of heads){{const r=cell.getBoundingClientRect();if(r.left<vr.right-1&&r.right>vr.right+1){{w=Math.max(32,Math.min(Math.round(vr.width*.34),Math.ceil(vr.right-r.left)+3));break}}}}edgeRight.style.width=w+'px';edgeRight.style.display='flex'}}}}}}function syncScrollbars(){{if(!tableScroll||!topScroll||!topScrollInner)return;const overflow=tableScroll.scrollWidth>tableScroll.clientWidth+2;topScroll.style.display=overflow?'block':'none';topScrollInner.style.width=tableScroll.scrollWidth+'px';if(!overflow){{topScroll.scrollLeft=0;tableScroll.scrollLeft=0}}syncOverflowHints()}}function render(){{let a=filtered();if(sc!==null){{let th=t.tHead.rows[0].cells[sc],type=th.dataset.type||'text';a.sort((r1,r2)=>{{let x=sv(r1.cells[sc],type),y=sv(r2.cells[sc],type);return (typeof x==='number'&&typeof y==='number'?(x-y):String(x).localeCompare(String(y),undefined,{{numeric:true}}))*dir}})}}rows.forEach(r=>r.style.display='none');let total=a.length,pages=ps?Math.max(1,Math.ceil(total/ps)):1;page=Math.min(Math.max(1,page),pages);let show=ps?a.slice((page-1)*ps,page*ps):a;show.forEach(r=>{{r.style.display='';tb.appendChild(r)}});if(count)count.textContent=total===rows.length?`${{total.toLocaleString()}} rows`:`${{total.toLocaleString()}} of ${{rows.length.toLocaleString()}} rows`;if(status)status.textContent=`${{page}} / ${{pages}}`;if(prev)prev.disabled=page<=1;if(next)next.disabled=page>=pages;if(empty)empty.style.display=total?'none':'block';requestAnimationFrame(syncScrollbars)}}if(q)q.addEventListener('input',()=>{{page=1;render()}});if(size)size.addEventListener('change',()=>{{ps=parseInt(size.value)||0;page=1;render()}});if(prev)prev.addEventListener('click',()=>{{page--;render()}});if(next)next.addEventListener('click',()=>{{page++;render()}});{'t.querySelectorAll("th.sortable").forEach((th,i)=>{th.tabIndex=0;function go(){if(sc===i)dir*=-1;else{sc=i;dir=1}t.querySelectorAll("th").forEach(x=>x.classList.remove("asc"));if(dir===1)th.classList.add("asc");page=1;render()}th.addEventListener("click",go);th.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}})});' if cfg['sortable'] else ''}if(tableScroll&&topScroll){{let lock=false;tableScroll.addEventListener('scroll',()=>{{syncOverflowHints();if(lock)return;lock=true;topScroll.scrollLeft=tableScroll.scrollLeft;requestAnimationFrame(()=>{{lock=false;syncOverflowHints()}})}});topScroll.addEventListener('scroll',()=>{{if(lock)return;lock=true;tableScroll.scrollLeft=topScroll.scrollLeft;requestAnimationFrame(()=>{{lock=false;syncOverflowHints()}})}});}}window.addEventListener('resize',syncScrollbars);if('ResizeObserver'in window&&tableScroll){{new ResizeObserver(syncScrollbars).observe(tableScroll)}}render();requestAnimationFrame(syncScrollbars);setTimeout(syncScrollbars,120)}})();</script></body></html>'''
 
 
 head_l, head_r = st.columns([.88,.12], vertical_alignment="bottom")
@@ -300,10 +350,8 @@ with left:
     with st.container(border=True):
         st.markdown("### 1. Brand and header")
         brand = st.selectbox("Brand", list(BRANDS))
-        st.image(
-            BRANDS[brand]["logo"],
-            width=(132 if brand == "BOLAVIP" else 220 if brand == "Action Network" else 180),
-        )
+        builder_logo_width = 132 if brand == "BOLAVIP" else (240 if brand == "Action Network" else 180)
+        st.image(BRANDS[brand]["logo"], width=builder_logo_width)
         title = st.text_input("Title", "Interactive ranking")
         subtitle = st.text_area("Subtitle", "Explore the data, sort any column and search the full ranking.", height=80)
         kicker = st.text_input("Kicker", "Data study")
@@ -362,7 +410,7 @@ with right:
     with st.container(border=True):
         st.markdown('<span class="sticky-preview-marker" aria-hidden="true"></span>', unsafe_allow_html=True)
         st.markdown("### Live preview")
-        st.caption(f"{len(df):,} rows · {len(columns)} columns · {brand}. The preview stays visible while you move through the builder. The downloaded file itself is normal standalone HTML.")
+        st.caption(f"{len(df):,} rows · {len(columns)} columns · {brand}. The live preview stays pinned beside the builder while you scroll. The downloaded file itself is normal standalone HTML.")
         components.html(code, height=690, scrolling=True)
     st.markdown("### Export")
     x,y = st.columns(2)
