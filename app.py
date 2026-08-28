@@ -4,7 +4,6 @@ import html
 import io
 import os
 import re
-from datetime import date
 
 import pandas as pd
 import requests
@@ -25,6 +24,26 @@ div[data-testid="stVerticalBlockBorderWrapper"]{background:rgba(255,255,255,.9);
 .studio-title{font-size:clamp(36px,4.4vw,62px);line-height:.98;letter-spacing:-.05em;margin:0;color:#111418}
 .studio-sub{max-width:760px;font-size:16px;line-height:1.55;color:#69717d;margin:12px 0 0}
 .note{padding:12px 14px;border:1px solid #dfe7e1;border-left:4px solid #56C257;background:#fbfffc;color:#374151;font-size:13px}
+/* Desktop: the live preview follows the viewport while the settings continue below. */
+div[data-testid="stVerticalBlockBorderWrapper"]:has(.sticky-preview-marker){
+  position:sticky!important;
+  top:14px!important;
+  align-self:flex-start!important;
+  z-index:4!important;
+  max-height:calc(100vh - 28px);
+  overflow:auto;
+  background:rgba(255,255,255,.96)!important;
+  backdrop-filter:blur(10px);
+  scrollbar-width:thin;
+}
+.sticky-preview-marker{display:block;width:0;height:0;overflow:hidden}
+@media(max-width:900px){
+  div[data-testid="stVerticalBlockBorderWrapper"]:has(.sticky-preview-marker){
+    position:static!important;
+    max-height:none;
+    overflow:visible;
+  }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -153,9 +172,9 @@ def generate_html(df, cfg):
     th = []
     for i,c in enumerate(cols):
         typ = "number" if fmts[c] != "Text" else "text"
-        # Keep the header aligned with the values beneath it.
-        # Premium editorial default: text left, numeric/rank centered.
-        th_align = f"a-{aligns[c].lower()}"
+        # Premium infographic treatment: center every column header.
+        # Body cells still use the per-column alignment selected in the builder.
+        th_align = "a-center"
         sort_class = "sortable" if cfg["sortable"] else ""
         th_classes = " ".join(x for x in [sort_class, th_align] if x)
         th.append(f'<th data-col="{i}" data-type="{typ}" class="{th_classes}"><span>{html.escape(labels[c])}</span>{"<i></i>" if cfg["sortable"] else ""}</th>')
@@ -192,7 +211,7 @@ def generate_html(df, cfg):
     footer_logo = f'<img class="footer-logo-img" src="{html.escape(logo)}" alt="{html.escape(cfg["brand"])} logo">' if cfg["footer_logo"] else ""
 
     meta = []
-    for lab,key in [("Source","source"),("Methodology","method"),("Credit","credit"),("Updated","updated")]:
+    for lab,key in [("Source","source"),("Methodology","method"),("Credit","credit")]:
         if cfg[key].strip(): meta.append(f'<div><strong>{lab}</strong><span>{html.escape(cfg[key].strip())}</span></div>')
     footer = ""
     if footer_logo or meta or cfg["footnote"].strip():
@@ -311,20 +330,27 @@ with left:
         heat = st.multiselect("Heatmap columns", [c for c in columns if formats[c] != "Text"], default=[])
     with st.container(border=True):
         st.markdown("### 4. Footer")
+        st.caption("Keep it minimal. Add a logo, source, methodology, credit or a short footer line only when needed.")
         footer_logo = st.toggle("Show logo in footer", True)
         source = st.text_input("Source", "")
         method = st.text_area("Methodology", "", height=84)
         credit = st.text_input("Credit", "")
-        updated = st.text_input("Updated", date.today().strftime("%d %B %Y"))
-        footnote = st.text_area("Footer note", "", height=70)
+        footnote = st.text_area(
+            "Footer text (optional)",
+            "",
+            height=82,
+            help="Optional free-text footer copy. Leave blank for a cleaner footer.",
+        )
 
-cfg = dict(brand=brand,title=title,subtitle=subtitle,kicker=kicker,columns=columns,labels=labels,formats=formats,aligns=aligns,currency=currency,search=search,pager=pager,page_size=page_size,row_count=row_count,sortable=sortable,zebra=zebra,top3=top3,sticky=sticky,mobile_cards=mobile_cards,heat=heat,header_logo=header_logo,footer_logo=footer_logo,source=source,method=method,credit=credit,updated=updated,footnote=footnote)
+cfg = dict(brand=brand,title=title,subtitle=subtitle,kicker=kicker,columns=columns,labels=labels,formats=formats,aligns=aligns,currency=currency,search=search,pager=pager,page_size=page_size,row_count=row_count,sortable=sortable,zebra=zebra,top3=top3,sticky=sticky,mobile_cards=mobile_cards,heat=heat,header_logo=header_logo,footer_logo=footer_logo,source=source,method=method,credit=credit,footnote=footnote)
 code = generate_html(df,cfg)
 
 with right:
-    st.markdown("### Live preview")
-    st.caption(f"{len(df):,} rows · {len(columns)} columns · {brand}. The preview uses a Streamlit component only for display. The downloaded file itself is normal standalone HTML.")
-    components.html(code, height=760, scrolling=True)
+    with st.container(border=True):
+        st.markdown('<span class="sticky-preview-marker" aria-hidden="true"></span>', unsafe_allow_html=True)
+        st.markdown("### Live preview")
+        st.caption(f"{len(df):,} rows · {len(columns)} columns · {brand}. The preview stays visible while you move through the builder. The downloaded file itself is normal standalone HTML.")
+        components.html(code, height=690, scrolling=True)
     st.markdown("### Export")
     x,y = st.columns(2)
     with x:
