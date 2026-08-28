@@ -228,23 +228,30 @@ def generate_html(df, cfg):
         controls.append(f'<div class="pager"><label>Rows <select id="size">{opts}</select></label><button id="prev" type="button">←</button><span id="status"></span><button id="next" type="button">→</button></div>')
     controls_html = f'<div class="controls">{"".join(controls)}</div>' if controls else ""
 
-    # Brand-specific logo sizing. BOLAVIP's horizontal wordmark reads larger
-    # than the other marks at the same CSS box size, so give it a quieter footprint.
+    # Brand-specific logo sizing based on perceived visual weight.
     if cfg["brand"] == "BOLAVIP":
-        # BOLAVIP's wide wordmark has a lot of visual mass, so keep it deliberately compact.
+        # Wide, heavy wordmark: deliberately compact.
         header_logo_max_w = 104
         header_logo_max_h = 27
         footer_logo_max_w = 94
         footer_logo_max_h = 23
         mobile_header_logo_max_w = 88
         mobile_header_logo_max_h = 22
+    elif cfg["brand"] == "Action Network":
+        # Action's visible mark is relatively small inside the source image canvas,
+        # so it needs a larger CSS box to read at the same visual size.
+        header_logo_max_w = 220
+        header_logo_max_h = 48
+        footer_logo_max_w = 165
+        footer_logo_max_h = 36
+        mobile_header_logo_max_w = 132
+        mobile_header_logo_max_h = 31
     else:
-        # Logos are supporting brand marks, not a second content row.
-        header_logo_max_w = 150
-        header_logo_max_h = 36
-        footer_logo_max_w = 122
-        footer_logo_max_h = 29
-        mobile_header_logo_max_w = 108
+        header_logo_max_w = 160
+        header_logo_max_h = 38
+        footer_logo_max_w = 128
+        footer_logo_max_h = 30
+        mobile_header_logo_max_w = 112
         mobile_header_logo_max_h = 27
 
     mobile_css = """
@@ -290,7 +297,8 @@ with left:
     with st.container(border=True):
         st.markdown("### 1. Brand and header")
         brand = st.selectbox("Brand", list(BRANDS))
-        st.image(BRANDS[brand]["logo"], width=(132 if brand == "BOLAVIP" else 180))
+        builder_logo_width = 132 if brand == "BOLAVIP" else (220 if brand == "Action Network" else 180)
+        st.image(BRANDS[brand]["logo"], width=builder_logo_width)
         title = st.text_input("Title", "Interactive ranking")
         subtitle = st.text_area("Subtitle", "Explore the data, sort any column and search the full ranking.", height=80)
         kicker = st.text_input("Kicker", "Data study")
