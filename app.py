@@ -238,8 +238,17 @@ def generate_html(df, cfg):
         footer_logo_max_h = 23
         mobile_header_logo_max_w = 88
         mobile_header_logo_max_h = 22
+    elif cfg["brand"] == "Action Network":
+        # Action Network's supplied mark reads visually smaller inside the same box,
+        # so give only this brand a larger footprint while keeping the same header/footer row.
+        header_logo_max_w = 198
+        header_logo_max_h = 48
+        footer_logo_max_w = 164
+        footer_logo_max_h = 38
+        mobile_header_logo_max_w = 142
+        mobile_header_logo_max_h = 34
     else:
-        # Logos are supporting brand marks, not a second content row.
+        # Keep the sizing of the other brand marks unchanged.
         header_logo_max_w = 150
         header_logo_max_h = 36
         footer_logo_max_w = 122
@@ -290,7 +299,10 @@ with left:
     with st.container(border=True):
         st.markdown("### 1. Brand and header")
         brand = st.selectbox("Brand", list(BRANDS))
-        st.image(BRANDS[brand]["logo"], width=(132 if brand == "BOLAVIP" else 180))
+        st.image(
+            BRANDS[brand]["logo"],
+            width=(132 if brand == "BOLAVIP" else 220 if brand == "Action Network" else 180),
+        )
         title = st.text_input("Title", "Interactive ranking")
         subtitle = st.text_area("Subtitle", "Explore the data, sort any column and search the full ranking.", height=80)
         kicker = st.text_input("Kicker", "Data study")
