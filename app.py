@@ -45,7 +45,7 @@ div[data-testid="stVerticalBlockBorderWrapper"]{background:rgba(255,255,255,.9);
     overflow-y:auto!important;
     overflow-x:hidden!important;
     scrollbar-width:thin;
-    scrollbar-color:#c8cdd3 transparent;
+    scrollbar-color:var(--preview-scroll-thumb, #c8cdd3) var(--preview-scroll-track, transparent);
   }
 
   /* Keep the actual preview large but make it fit within the visible viewport,
@@ -57,14 +57,18 @@ div[data-testid="stVerticalBlockBorderWrapper"]{background:rgba(255,255,255,.9);
   }
 
   div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar{
-    width:5px;
+    width:6px;
   }
   div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar-track{
-    background:transparent;
+    background:var(--preview-scroll-track, transparent);
+    border-radius:999px;
   }
   div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar-thumb{
-    background:#c8cdd3;
+    background:var(--preview-scroll-thumb, #c8cdd3);
     border-radius:999px;
+  }
+  div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar-thumb:hover{
+    background:var(--preview-scroll-thumb-hover, #aeb6bf);
   }
 }
 
@@ -348,6 +352,19 @@ with left:
         brand = st.selectbox("Brand", list(BRANDS))
         builder_logo_width = 132 if brand == "BOLAVIP" else (240 if brand == "Action Network" else 180)
         st.image(BRANDS[brand]["logo"], width=builder_logo_width)
+        brand_rgb = BRANDS[brand]["rgb"]
+        st.markdown(
+            f"""
+            <style>
+              :root {{
+                --preview-scroll-thumb: rgba({brand_rgb[0]}, {brand_rgb[1]}, {brand_rgb[2]}, .78);
+                --preview-scroll-thumb-hover: rgba({brand_rgb[0]}, {brand_rgb[1]}, {brand_rgb[2]}, .96);
+                --preview-scroll-track: rgba({brand_rgb[0]}, {brand_rgb[1]}, {brand_rgb[2]}, .12);
+              }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
         title = st.text_input("Title", "Interactive ranking")
         subtitle = st.text_area("Subtitle", "Explore the data, sort any column and search the full ranking.", height=80)
         kicker = st.text_input("Kicker", "Data study")
