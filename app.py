@@ -40,36 +40,17 @@ div[data-testid="stVerticalBlockBorderWrapper"]{background:rgba(255,255,255,.9);
     top:12px!important;
     align-self:flex-start!important;
     z-index:8!important;
-    height:calc(100vh - 24px)!important;
-    max-height:calc(100vh - 24px)!important;
-    overflow-y:auto!important;
-    overflow-x:hidden!important;
-    scrollbar-width:thin;
-    scrollbar-color:var(--preview-scroll-thumb, #c8cdd3) var(--preview-scroll-track, transparent);
+    height:auto!important;
+    max-height:none!important;
+    overflow:visible!important;
   }
 
-  /* The component reports its own content height back to Streamlit.
-     Do not constrain it here, otherwise an unnecessary second vertical
-     scrollbar appears inside the live preview. */
+  /* The preview container itself never scrolls vertically.
+     The generated table owns the single branded vertical scrollbar. */
   div[data-testid="stColumn"]:has(.sticky-preview-marker) iframe{
     width:100%!important;
     min-height:0!important;
     max-height:none!important;
-  }
-
-  div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar{
-    width:6px;
-  }
-  div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar-track{
-    background:var(--preview-scroll-track, transparent);
-    border-radius:999px;
-  }
-  div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar-thumb{
-    background:var(--preview-scroll-thumb, #c8cdd3);
-    border-radius:999px;
-  }
-  div[data-testid="stColumn"]:has(.sticky-preview-marker)::-webkit-scrollbar-thumb:hover{
-    background:var(--preview-scroll-thumb-hover, #aeb6bf);
   }
 }
 
@@ -309,7 +290,7 @@ def generate_html(df, cfg):
         mobile_footer_logo_width_css = f"width:auto;max-width:min({footer_logo_max_w}px,26vw);"
 
     mobile_css = """
-    @media(max-width:720px){table{min-width:0}thead{display:none}.scroll-nav,.edge-hint{display:none!important}.scroll-shell{overflow:visible}.scroll{border:0;overflow:visible}tbody{display:grid;gap:10px}tbody tr.data-row{display:block!important;border:1px solid var(--line);background:#fff}tbody td{display:grid;grid-template-columns:minmax(100px,38%) minmax(0,1fr);gap:12px;width:100%;border-right:0;padding:10px 12px;text-align:right!important}tbody td:before{content:attr(data-label);color:#69717c;text-align:left;font-size:10px;font-weight:850;letter-spacing:.07em;text-transform:uppercase}}
+    @media(max-width:720px){table{min-width:0}thead{display:none}.scroll-nav,.edge-hint{display:none!important}.scroll-shell{overflow:visible}.scroll{max-height:none;border:0;overflow:visible}tbody{display:grid;gap:10px}tbody tr.data-row{display:block!important;border:1px solid var(--line);background:#fff}tbody td{display:grid;grid-template-columns:minmax(100px,38%) minmax(0,1fr);gap:12px;width:100%;border-right:0;padding:10px 12px;text-align:right!important}tbody td:before{content:attr(data-label);color:#69717c;text-align:left;font-size:10px;font-weight:850;letter-spacing:.07em;text-transform:uppercase}}
     """ if cfg["mobile_cards"] else ""
 
     return f'''<!DOCTYPE html>
@@ -319,7 +300,7 @@ def generate_html(df, cfg):
 *{{box-sizing:border-box}}body{{margin:0;padding:24px;background:#f5f6f7;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}}.wrap{{width:min(1180px,100%);margin:auto;background:#fff;border:1px solid var(--line);overflow:hidden}}
 header{{position:relative;display:block;width:100%;padding:26px 28px 24px;background:var(--tint);border-bottom:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}}.kicker{{margin:0 0 8px;color:var(--dark);font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}}h1{{margin:0;max-width:900px;font-size:clamp(25px,4vw,42px);line-height:1.02;letter-spacing:-.045em}}.sub{{max-width:820px;margin:10px 0 0;color:#59616d;font-size:clamp(14px,1.7vw,17px);line-height:1.5}}
 .body{{padding:18px 20px 20px}}.controls{{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}}.search{{flex:1 1 240px;max-width:340px}}input,.pager-arrow{{min-height:40px;border:1px solid #d8dde3;border-radius:9px;background:#fff;color:#24282e;font:650 13px/1 system-ui,sans-serif}}input{{width:100%;padding:0 12px}}input:focus,.pager-arrow:focus-visible,.size-trigger:focus-visible,.size-option:focus-visible{{outline:3px solid color-mix(in srgb,var(--accent) 16%,transparent);outline-offset:1px;border-color:var(--accent)}}.count{{color:var(--muted);font-size:12.5px;font-weight:700}}.pager{{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;font-weight:700}}.rows-label{{font-weight:800;color:#68707c}}.pager-arrow{{width:40px;padding:0;cursor:pointer}}.pager-arrow:disabled{{opacity:.35;cursor:default}}.size-select{{position:relative;display:inline-block;z-index:12}}.size-trigger{{min-width:70px;height:40px;padding:0 10px 0 13px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid color-mix(in srgb,var(--accent) 55%,#d8dde3);border-radius:9px;background:#fff;color:#20252b;font:800 13px/1 system-ui,sans-serif;cursor:pointer;box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--accent) 16%,transparent)}}.size-trigger:hover{{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 5%,#fff)}}.size-trigger[aria-expanded="true"]{{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,#fff)}}.size-trigger i{{width:8px;height:8px;border-right:2px solid #333b44;border-bottom:2px solid #333b44;transform:rotate(45deg) translateY(-2px);transition:transform .15s ease;flex:0 0 auto}}.size-trigger[aria-expanded="true"] i{{transform:rotate(225deg) translate(-1px,-1px)}}.size-menu{{position:absolute;right:0;top:calc(100% + 5px);min-width:100%;padding:5px;background:#fff;border:1px solid color-mix(in srgb,var(--accent) 32%,#d7dde3);border-radius:9px;box-shadow:0 12px 30px rgba(15,23,42,.14);overflow:hidden;z-index:30}}.size-menu[hidden]{{display:none!important}}.size-option{{display:block;width:100%;min-height:34px;padding:0 12px;border:0;border-radius:6px;background:#fff;color:#20252b;text-align:left;font:750 13px/1 system-ui,sans-serif;cursor:pointer}}.size-option:hover,.size-option:focus-visible{{background:color-mix(in srgb,var(--accent) 12%,#fff);color:var(--dark)}}.size-option[aria-selected="true"]{{background:var(--accent);color:#fff}}.size-option[aria-selected="true"]:hover,.size-option[aria-selected="true"]:focus-visible{{background:var(--dark);color:#fff}}
-.scroll-nav{{display:none;grid-template-columns:30px minmax(0,1fr) 30px;align-items:center;gap:6px;width:100%;margin:0 0 8px}}.top-scroll{{width:100%;height:7px;overflow-x:auto;overflow-y:hidden;margin:0;border:0;background:transparent;display:block;scrollbar-width:thin;scrollbar-color:var(--accent) color-mix(in srgb,var(--accent) 10%,#eef1f4)}}.top-scroll-inner{{height:1px}}.scroll-jump{{width:28px;height:28px;min-width:28px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent) 35%,#d9dfe4);background:#fff;color:var(--dark);font:900 15px/1 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(15,23,42,.055);transition:background .15s ease,border-color .15s ease,transform .15s ease,opacity .15s ease}}.scroll-jump:focus-visible{{outline:3px solid color-mix(in srgb,var(--accent) 20%,transparent);outline-offset:2px}}.scroll-jump.is-away{{visibility:hidden;pointer-events:none}}@media(hover:hover) and (pointer:fine){{.scroll-jump:hover{{background:color-mix(in srgb,var(--accent) 7%,#fff);border-color:var(--accent);transform:scale(1.05)}}}}.scroll-shell{{position:relative;width:100%;min-width:0}}.scroll{{width:100%;overflow-x:auto;border:1px solid var(--line);scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:var(--accent) color-mix(in srgb,var(--accent) 10%,#eef1f4)}}.top-scroll::-webkit-scrollbar,.scroll::-webkit-scrollbar{{height:5px}}.top-scroll::-webkit-scrollbar-track,.scroll::-webkit-scrollbar-track{{background:color-mix(in srgb,var(--accent) 8%,#eef1f4);border-radius:999px}}.top-scroll::-webkit-scrollbar-thumb,.scroll::-webkit-scrollbar-thumb{{background:var(--accent);border-radius:999px}}.top-scroll::-webkit-scrollbar-thumb:hover,.scroll::-webkit-scrollbar-thumb:hover{{background:var(--dark)}}.edge-hint{{position:absolute;top:1px;bottom:6px;z-index:8;display:none;pointer-events:none;overflow:hidden}}.edge-hint.right{{right:1px;background:linear-gradient(to right,rgba(255,255,255,0) 0%,rgba(255,255,255,.90) 30%,#fff 64%,#fff 100%)}}.edge-hint.left{{left:1px;width:28px;background:linear-gradient(to left,rgba(255,255,255,0) 0%,rgba(255,255,255,.90) 50%,#fff 100%)}}table{{width:100%;min-width:{table_min_width}px;border-collapse:separate;border-spacing:0}}th{{{'position:sticky;top:0;z-index:3;' if cfg['sticky'] else ''}padding:13px 14px;background:#12161b;color:#fff;border-right:1px solid rgba(255,255,255,.08);font-size:12px;line-height:1.25;font-weight:800;text-align:left}}th:last-child{{border-right:0}}th.sortable{{cursor:pointer;user-select:none}}th.sortable i{{display:inline-block;width:7px;height:7px;margin-left:7px;border-right:1.5px solid #9da4ae;border-bottom:1.5px solid #9da4ae;transform:rotate(45deg) translateY(-2px)}}th.a-center{{text-align:center}}th.a-right{{text-align:right}}th.a-left{{text-align:left}}th.asc i{{transform:rotate(225deg)}}td{{padding:13px 14px;border-right:1px solid #edf0f2;border-bottom:1px solid #e9ecef;color:#30353c;font-size:13.5px;line-height:1.4;font-weight:560;background:#fff}}td:last-child{{border-right:0}}{'tbody tr:nth-child(even):not(.top) td{background:var(--stripe)}' if cfg['zebra'] else ''}.top td:first-child{{box-shadow:inset 4px 0 0 var(--accent)}}@media(hover:hover) and (pointer:fine){{tbody tr:hover td{{background:color-mix(in srgb,var(--accent) 8%,#fff)}}}}.a-left{{text-align:left}}.a-center{{text-align:center}}.a-right{{text-align:right;font-variant-numeric:tabular-nums}}#empty{{display:none;padding:34px 20px;text-align:center;color:var(--muted)}}
+.scroll-nav{{display:none;grid-template-columns:30px minmax(0,1fr) 30px;align-items:center;gap:6px;width:100%;margin:0 0 8px}}.top-scroll{{width:100%;height:7px;overflow-x:auto;overflow-y:hidden;margin:0;border:0;background:transparent;display:block;scrollbar-width:thin;scrollbar-color:var(--accent) color-mix(in srgb,var(--accent) 10%,#eef1f4)}}.top-scroll-inner{{height:1px}}.scroll-jump{{width:28px;height:28px;min-width:28px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent) 35%,#d9dfe4);background:#fff;color:var(--dark);font:900 15px/1 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(15,23,42,.055);transition:background .15s ease,border-color .15s ease,transform .15s ease,opacity .15s ease}}.scroll-jump:focus-visible{{outline:3px solid color-mix(in srgb,var(--accent) 20%,transparent);outline-offset:2px}}.scroll-jump.is-away{{visibility:hidden;pointer-events:none}}@media(hover:hover) and (pointer:fine){{.scroll-jump:hover{{background:color-mix(in srgb,var(--accent) 7%,#fff);border-color:var(--accent);transform:scale(1.05)}}}}.scroll-shell{{position:relative;width:100%;min-width:0}}.scroll{{width:100%;max-height:360px;overflow:auto;border:1px solid var(--line);scrollbar-gutter:stable both-edges;scrollbar-width:thin;scrollbar-color:var(--accent) color-mix(in srgb,var(--accent) 10%,#eef1f4)}}.top-scroll::-webkit-scrollbar{{height:5px}}.scroll::-webkit-scrollbar{{width:5px;height:5px}}.top-scroll::-webkit-scrollbar-track,.scroll::-webkit-scrollbar-track{{background:color-mix(in srgb,var(--accent) 8%,#eef1f4);border-radius:999px}}.top-scroll::-webkit-scrollbar-thumb,.scroll::-webkit-scrollbar-thumb{{background:var(--accent);border-radius:999px}}.top-scroll::-webkit-scrollbar-thumb:hover,.scroll::-webkit-scrollbar-thumb:hover{{background:var(--dark)}}.edge-hint{{position:absolute;top:1px;bottom:6px;z-index:8;display:none;pointer-events:none;overflow:hidden}}.edge-hint.right{{right:1px;background:linear-gradient(to right,rgba(255,255,255,0) 0%,rgba(255,255,255,.90) 30%,#fff 64%,#fff 100%)}}.edge-hint.left{{left:1px;width:28px;background:linear-gradient(to left,rgba(255,255,255,0) 0%,rgba(255,255,255,.90) 50%,#fff 100%)}}table{{width:100%;min-width:{table_min_width}px;border-collapse:separate;border-spacing:0}}th{{{'position:sticky;top:0;z-index:3;' if cfg['sticky'] else ''}padding:13px 14px;background:#12161b;color:#fff;border-right:1px solid rgba(255,255,255,.08);font-size:12px;line-height:1.25;font-weight:800;text-align:left}}th:last-child{{border-right:0}}th.sortable{{cursor:pointer;user-select:none}}th.sortable i{{display:inline-block;width:7px;height:7px;margin-left:7px;border-right:1.5px solid #9da4ae;border-bottom:1.5px solid #9da4ae;transform:rotate(45deg) translateY(-2px)}}th.a-center{{text-align:center}}th.a-right{{text-align:right}}th.a-left{{text-align:left}}th.asc i{{transform:rotate(225deg)}}td{{padding:13px 14px;border-right:1px solid #edf0f2;border-bottom:1px solid #e9ecef;color:#30353c;font-size:13.5px;line-height:1.4;font-weight:560;background:#fff}}td:last-child{{border-right:0}}{'tbody tr:nth-child(even):not(.top) td{background:var(--stripe)}' if cfg['zebra'] else ''}.top td:first-child{{box-shadow:inset 4px 0 0 var(--accent)}}@media(hover:hover) and (pointer:fine){{tbody tr:hover td{{background:color-mix(in srgb,var(--accent) 8%,#fff)}}}}.a-left{{text-align:left}}.a-center{{text-align:center}}.a-right{{text-align:right;font-variant-numeric:tabular-nums}}#empty{{display:none;padding:34px 20px;text-align:center;color:var(--muted)}}
 footer{{padding:16px 24px;background:var(--tint);border-top:1px solid color-mix(in srgb,var(--accent) 18%,transparent)}}.footer-main{{display:flex;justify-content:space-between;gap:18px;align-items:center;min-width:0}}.footer-meta{{display:grid;gap:6px;min-width:0;flex:1 1 auto}}.footer-meta div{{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;color:#606873;font-size:11.5px;line-height:1.4}}.footer-meta strong{{color:#31363d;font-size:10px;letter-spacing:.08em;text-transform:uppercase}}.footer-logo{{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;line-height:0}}.footer-logo img{{{footer_logo_width_css}max-height:{footer_logo_max_h}px;height:auto;object-fit:contain}}.footnote{{margin:14px 0 0;padding-top:12px;border-top:1px solid rgba(0,0,0,.07);color:#747c86;font-size:10.5px;line-height:1.5}}.sr{{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}}
 @media(max-width:720px){{body{{padding:8px}}header{{padding:18px 16px 16px}}.body{{padding:10px}}.controls{{gap:8px;margin-bottom:10px}}.search{{max-width:none;flex-basis:100%}}.count{{order:2}}.pager{{order:3;margin-left:auto;width:auto;justify-content:flex-end}}.scroll{{-webkit-overflow-scrolling:touch}}th,td{{white-space:nowrap}}footer{{padding:14px 16px}}.footer-main{{flex-direction:row;align-items:center;gap:12px}}.footer-meta div{{grid-template-columns:68px minmax(0,1fr);gap:8px}}.footer-logo img{{{mobile_footer_logo_width_css}max-height:{footer_logo_max_h}px}}}}
 {mobile_css}
@@ -353,19 +334,6 @@ with left:
         brand = st.selectbox("Brand", list(BRANDS))
         builder_logo_width = 132 if brand == "BOLAVIP" else (240 if brand == "Action Network" else 180)
         st.image(BRANDS[brand]["logo"], width=builder_logo_width)
-        brand_rgb = BRANDS[brand]["rgb"]
-        st.markdown(
-            f"""
-            <style>
-              :root {{
-                --preview-scroll-thumb: rgba({brand_rgb[0]}, {brand_rgb[1]}, {brand_rgb[2]}, .78);
-                --preview-scroll-thumb-hover: rgba({brand_rgb[0]}, {brand_rgb[1]}, {brand_rgb[2]}, .96);
-                --preview-scroll-track: rgba({brand_rgb[0]}, {brand_rgb[1]}, {brand_rgb[2]}, .12);
-              }}
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
         title = st.text_input("Title", "Interactive ranking")
         subtitle = st.text_area("Subtitle", "Explore the data, sort any column and search the full ranking.", height=80)
         kicker = st.text_input("Kicker", "Data study")
@@ -424,7 +392,7 @@ with right:
     with st.container(border=True):
         st.markdown('<span class="sticky-preview-marker" aria-hidden="true"></span>', unsafe_allow_html=True)
         st.markdown("### Live preview")
-        st.caption(f"{len(df):,} rows · {len(columns)} columns · {brand}. The live preview stays pinned beside the builder while you scroll. Horizontal navigation arrows now sit directly beside the slim branded scrollbar.")
+        st.caption(f"{len(df):,} rows · {len(columns)} columns · {brand}. The live preview stays pinned beside the builder while you scroll. Only the table itself uses the slim branded vertical scrollbar.")
         components.html(code, height=690, scrolling=False)
     st.markdown("### Export")
     x,y = st.columns(2)
